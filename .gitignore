@@ -1,0 +1,27 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Builds
+build/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Logs
+logs/
+
+# Envfile
+.env
+
+# IDE files
+.idea/
+
+# Volumes
+.volumes/
