@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-type Circuit func(ctx context.Context) (string, error)
+type UserFunc func(ctx context.Context) (string, error)
 
-func Breaker(circuit Circuit, failureThreshold int) Circuit {
+func CircuitBreaker(fn UserFunc, failureThreshold int) UserFunc {
 	var mu sync.RWMutex
 	failures := 0
 	lastAttemptAt := time.Now()
@@ -27,7 +27,7 @@ func Breaker(circuit Circuit, failureThreshold int) Circuit {
 		}
 
 		mu.RUnlock()
-		resp, err := circuit(ctx)
+		resp, err := fn(ctx)
 
 		mu.Lock()
 		defer mu.Unlock()

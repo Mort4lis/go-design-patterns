@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-// failAfter returns a function matching the Circuit type that returns an
+// failAfter returns a function matching the UserFunc type that returns an
 // error after it's been called more than threshold times.
-func failAfter(threshold int) Circuit {
+func failAfter(threshold int) UserFunc {
 	count := 0
 
 	// Service function. Fails after 5 tries.
@@ -28,7 +28,7 @@ func failAfter(threshold int) Circuit {
 	}
 }
 
-func waitAndContinue() Circuit {
+func waitAndContinue() UserFunc {
 	return func(ctx context.Context) (string, error) {
 		time.Sleep(time.Second)
 
@@ -40,15 +40,11 @@ func waitAndContinue() Circuit {
 	}
 }
 
-// TestBreaker tests that the Breaker function automatically closes and reopens.
+// TestBreaker tests that the CircuitBreaker function automatically closes and reopens.
 func TestCircuitBreaker(t *testing.T) {
-	// Service function. Fails after 5 tries.
-	circuit := failAfter(5)
-
-	// A circuit breaker that opens after one failed attempt.
-	breaker := Breaker(circuit, 1)
-
 	ctx := context.Background()
+	// A circuit breaker that opens after one failed attempt.
+	cb := CircuitBreaker(failAfter(5), 1)
 
 	circuitOpen := false
 	doesCircuitOpen := false
@@ -56,7 +52,7 @@ func TestCircuitBreaker(t *testing.T) {
 	count := 0
 
 	for range time.NewTicker(time.Second).C {
-		_, err := breaker(ctx)
+		_, err := cb(ctx)
 
 		if err != nil {
 			// Does the circuit open?
@@ -98,9 +94,7 @@ func TestCircuitBreaker(t *testing.T) {
 // TestCircuitBreakerDataRace tests for data races.
 func TestCircuitBreakerDataRace(t *testing.T) {
 	ctx := context.Background()
-
-	circuit := waitAndContinue()
-	breaker := Breaker(circuit, 1)
+	cb := CircuitBreaker(waitAndContinue(), 1)
 
 	wg := sync.WaitGroup{}
 
@@ -112,7 +106,7 @@ func TestCircuitBreakerDataRace(t *testing.T) {
 
 			time.Sleep(50 * time.Millisecond)
 
-			_, err := breaker(ctx)
+			_, err := cb(ctx)
 
 			t.Logf("attempt %d: err=%v", count, err)
 		}(count)

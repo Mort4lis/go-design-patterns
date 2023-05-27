@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func emulateTransientError() Circuit {
+func emulateTransientError() UserFunc {
 	var count int
 
 	return func(ctx context.Context) (string, error) {

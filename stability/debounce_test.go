@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func counter() Circuit {
+func counter() UserFunc {
 	m := sync.Mutex{}
 	count := 0
 
@@ -44,9 +44,7 @@ func TestDebounceFirst(t *testing.T) {
 // TestDebounceFirstDataRace tests for data races.
 func TestDebounceFirstDataRace(t *testing.T) {
 	ctx := context.Background()
-
-	circuit := failAfter(1)
-	debounce := DebounceFirst(circuit, time.Second)
+	debounce := DebounceFirst(failAfter(1), time.Second)
 
 	wg := sync.WaitGroup{}
 

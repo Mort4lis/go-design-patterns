@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func DebounceFirst(circuit Circuit, d time.Duration) Circuit {
+func DebounceFirst(fn UserFunc, d time.Duration) UserFunc {
 	var (
 		mu              sync.Mutex
 		result          string
@@ -25,12 +25,12 @@ func DebounceFirst(circuit Circuit, d time.Duration) Circuit {
 			return result, err
 		}
 
-		result, err = circuit(ctx)
+		result, err = fn(ctx)
 		return result, err
 	}
 }
 
-func DebounceLast(circuit Circuit, d time.Duration) Circuit {
+func DebounceLast(fn UserFunc, d time.Duration) UserFunc {
 	var (
 		mu              sync.Mutex
 		once            sync.Once
@@ -72,7 +72,7 @@ func DebounceLast(circuit Circuit, d time.Duration) Circuit {
 							continue
 						}
 
-						result, err = circuit(ctx)
+						result, err = fn(ctx)
 						mu.Unlock()
 
 						return

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func Retry(fn Circuit, maxRetries int, delay time.Duration) Circuit {
+func Retry(fn UserFunc, maxRetries int, delay time.Duration) UserFunc {
 	return func(ctx context.Context) (string, error) {
 		for attempt := 1; ; attempt++ {
 			result, err := fn(ctx)
