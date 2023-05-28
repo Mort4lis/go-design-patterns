@@ -1,30 +1,39 @@
 package concurrency
 
-import "testing"
+import (
+	"sync/atomic"
+	"testing"
+)
 
 func TestFanIn(t *testing.T) {
+	var expectedTotalSum int64
 	sources := make([]<-chan int, 3)
+
 	for i := range sources {
 		src := make(chan int)
 		sources[i] = src
 
 		go func() {
+			var sum int
+
 			for j := 1; j <= 5; j++ {
 				src <- j
+				sum += j
 			}
 
+			atomic.AddInt64(&expectedTotalSum, int64(sum))
 			close(src)
 		}()
 	}
 
-	var sum int
+	var totalSum int
 	dest := FanIn(sources...)
 
 	for val := range dest {
-		sum += val
+		totalSum += val
 	}
 
-	if sum != 45 {
-		t.Errorf("wrong FanIn result: got %d, expected 45", sum)
+	if totalSum != int(expectedTotalSum) {
+		t.Errorf("wrong FanIn result: got %d, want %d", totalSum, expectedTotalSum)
 	}
 }
