@@ -2,6 +2,13 @@ package concurrency
 
 import "sync"
 
+// FanIn pattern combines multiply inputs into one single output channel.
+// Services that have some number of workers that all generate output may find it useful
+// to combine all the workers’ outputs to be processed as a single unified stream.
+//
+// FanIn is implemented as a function that receives N source channels. For each
+// input channel FanIn starts a separate goroutine to read values from its assigned channel and
+// forward all the values to a single destination channel shared by all the goroutines.
 func FanIn(sources ...<-chan int) <-chan int {
 	dest := make(chan int)
 
