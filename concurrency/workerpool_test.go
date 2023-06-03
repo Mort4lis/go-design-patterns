@@ -3,6 +3,8 @@ package concurrency
 import (
 	"testing"
 	"time"
+
+	"github.com/Mort4lis/go-design-patterns/testutils"
 )
 
 func longSquare(in any) any {
@@ -13,55 +15,33 @@ func longSquare(in any) any {
 }
 
 func TestWorkerPool(t *testing.T) {
-	const numWorkers = 5
-	var (
-		want int
-		got  int
-	)
+	testutils.DetectGoroutineLeeks(t, func() {
+		const numWorkers = 5
+		var (
+			want int
+			got  int
+		)
 
-	in, out := WorkerPool(numWorkers, longSquare)
-	time.Sleep(50 * time.Millisecond)
+		in, out := WorkerPool(numWorkers, longSquare)
+		writeTimer := time.NewTimer(100 * time.Millisecond)
 
-	for i := 1; i <= numWorkers; i++ {
-		select {
-		case in <- i:
-		default:
-			t.Fatal("no one reads an input channel")
+		for i := 1; i <= numWorkers; i++ {
+			testutils.WriteChan(t, in, i, testutils.WithTimer(writeTimer))
+			want += i * i
 		}
 
-		want += i * i
-	}
+		readTimer := time.NewTimer(2100 * time.Millisecond)
 
-	timer := time.NewTimer(2200 * time.Millisecond)
-
-	for i := 1; i <= numWorkers; i++ {
-		var val any
-
-		select {
-		case val = <-out:
-		case <-timer.C:
-			t.Fatal("timeout exceeded: no one writes an output channel")
+		for i := 1; i <= numWorkers; i++ {
+			val := testutils.ReadChan(t, out, testutils.WithTimer(readTimer))
+			got += val.(int)
 		}
 
-		got += val.(int)
-	}
+		close(in)
+		testutils.CheckClosedChan(t, out, testutils.WithDuration(50*time.Millisecond))
 
-	close(in)
-	time.Sleep(50 * time.Millisecond)
-
-	isOutClosed := false
-
-	select {
-	case _, ok := <-out:
-		isOutClosed = !ok
-	default:
-	}
-
-	if !isOutClosed {
-		t.Errorf("out channel isn't closed, but expected")
-	}
-
-	if got != want {
-		t.Errorf("wrong worker pool result: got %d, want %d", got, want)
-	}
+		if got != want {
+			t.Errorf("wrong worker pool result: got %d, want %d", got, want)
+		}
+	})
 }

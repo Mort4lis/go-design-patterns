@@ -1,9 +1,10 @@
 package concurrency
 
 import (
-	"runtime"
 	"testing"
 	"time"
+
+	"github.com/Mort4lis/go-design-patterns/testutils"
 )
 
 func incrJob(in <-chan any, out chan<- any) {
@@ -16,47 +17,25 @@ func incrJob(in <-chan any, out chan<- any) {
 }
 
 func TestPipeline(t *testing.T) {
-	var want int
-	jobs := make([]Job, 5)
+	testutils.DetectGoroutineLeeks(t, func() {
+		var want int
+		jobs := make([]Job, 5)
 
-	for i := range jobs {
-		want += 1
-		jobs[i] = incrJob
-	}
+		for i := range jobs {
+			want += 1
+			jobs[i] = incrJob
+		}
 
-	beforeNumGs := runtime.NumGoroutine()
+		in, out := Pipeline(jobs...)
 
-	in, out := Pipeline(jobs...)
-	in <- 0
-	val := <-out
+		testutils.WriteChan(t, in, 0, testutils.WithDuration(50*time.Millisecond))
+		val := testutils.ReadChan(t, out, testutils.WithDuration(50*time.Millisecond))
 
-	if val != want {
-		t.Errorf("wrong pipeline result: got %d, want %d", val, want)
-	}
+		if val != want {
+			t.Errorf("wrong pipeline result: got %d, want %d", val, want)
+		}
 
-	close(in)
-	time.Sleep(50 * time.Millisecond)
-
-	isOutClosed := false
-	select {
-	case _, ok := <-out:
-		isOutClosed = !ok
-	default:
-	}
-
-	if !isOutClosed {
-		t.Errorf("out channel isn't closed, but expected")
-	}
-
-	afterNumGs := runtime.NumGoroutine()
-	if beforeNumGs < afterNumGs {
-		buf := make([]byte, 4096)
-		runtime.Stack(buf, true)
-
-		t.Log(string(buf))
-		t.Errorf(
-			"gorotines leek is detected: before running pipeline was %d, now %d",
-			beforeNumGs, afterNumGs,
-		)
-	}
+		close(in)
+		testutils.CheckClosedChan(t, out, testutils.WithDuration(50*time.Millisecond))
+	})
 }

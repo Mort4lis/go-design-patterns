@@ -1,6 +1,8 @@
 package concurrency
 
-import "sync"
+import (
+	"sync"
+)
 
 type WorkerFunc func(in any) any
 
